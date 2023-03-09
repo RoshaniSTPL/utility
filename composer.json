@@ -1,0 +1,19 @@
+{
+    "name": "roshanistpl/utility",
+    "description": "A Laravel/Lumen package",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Roshanistpl\\Utility\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Roshani",
+            "email": "roshani@savitriya.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
