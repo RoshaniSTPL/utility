@@ -1,13 +1,13 @@
 <?php
 
-namespace RoshaniSTPL\utility;
+namespace RoshaniSTPL\utility\Controllers;
 
 use Aws;
-use App\Models\ExceptionHelper;
+use RoshaniSTPL\utility\ExceptionHelper;
 use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Types\Boolean;
 
-class FileHandleHelper {
+class FileHandleHelperController {
 
     /**
      * Delete File from Local file system
