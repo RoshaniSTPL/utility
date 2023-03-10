@@ -23,6 +23,7 @@ class UtilityProvider extends ServiceProvider
         include __DIR__.'/../routes/web.php';
 
         // Let Laravel Ioc Container know about our Controller
-        $this->app->make('RoshaniSTPL\utility\Controllers\UtilityController'); 
+        $this->app->make('RoshaniSTPL\utility\Controllers\UtilityController');
+        $this->app->make('RoshaniSTPL\utility\Controllers\FileHandleHelperController');
     }
 }
