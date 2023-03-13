@@ -15,7 +15,7 @@ class S3WrapperController {
      * @param Request $request
      * @return json
      */
-    public function getActualFile(Request $request, $params) {
+    static public function getActualFile(Request $request, $params) {
         // $params = 'PostImages/1586510036_index-1.jpeg';
         $mimeTypeArr = ['.flv', '.mp4', '.m3u8', '.ts', '.3gp', '.mov', '.avi', '.wmv', '.webm', '.mp4#t=0.5'];
         $uniqueKey = md5($params);
