@@ -6,6 +6,7 @@ use Aws;
 use RoshaniSTPL\utility\ExceptionHelper;
 use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Types\Boolean;
+use RoshaniSTPL\utility\Controllers\S3WrapperController;
 
 class FileHandleHelperController {
 
@@ -251,7 +252,8 @@ class FileHandleHelperController {
                         if ($isVideo) {
                             $file = env('BUCKET_FILE_PREFIX') . trim($file);
                         } else {
-                            $file = rtrim(env('APP_HOST',""), "/") . '/api/v1/s3/' . trim($file);
+                            // $file = rtrim(env('APP_HOST',""), "/") . '/api/v1/s3/' . trim($file);
+                            $file = (new S3WrapperController)->getActualFile(trim($file));
                         }
                     }
                 }
