@@ -3,10 +3,10 @@
 namespace RoshaniSTPL\utility\Controllers;
 
 use Aws;
-use RoshaniSTPL\utility\ExceptionHelper;
+use Roshanistpl\Utility\ExceptionHelper;
 use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Types\Boolean;
-use RoshaniSTPL\utility\Controllers\S3WrapperController;
+use Roshanistpl\Utility\Controllers\S3WrapperController;
 
 class FileHandleHelperController {
 
