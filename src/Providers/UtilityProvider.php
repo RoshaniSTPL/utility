@@ -25,5 +25,6 @@ class UtilityProvider extends ServiceProvider
         // Let Laravel Ioc Container know about our Controller
         $this->app->make('RoshaniSTPL\utility\Controllers\UtilityController');
         $this->app->make('RoshaniSTPL\utility\Controllers\FileHandleHelperController');
+        $this->app->make('RoshaniSTPL\utility\Controllers\S3WrapperController');
     }
 }
