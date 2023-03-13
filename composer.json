@@ -17,10 +17,10 @@
     "minimum-stability": "dev",
     "require": {
         "php": "^8.0",
-        "laravel/lumen-framework": "^9.0",
-        "bugsnag/bugsnag-laravel": "^2.26",
-        "aws/aws-sdk-php": "^3.261",
-        "aws/aws-sdk-php-laravel": "dev-master"
+        "aws/aws-sdk-php": "~3.0",
+        "aws/aws-sdk-php-laravel": "~3.0",
+        "bugsnag/bugsnag-laravel": "^2.0",
+        "laravel/lumen-framework": "^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5.10"
