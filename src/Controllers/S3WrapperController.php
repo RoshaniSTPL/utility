@@ -15,7 +15,7 @@ class S3WrapperController {
      * @param Request $request
      * @return json
      */
-    static public function getActualFile($params) {
+    static public function getActualFile($params, $storeCache, $awsDefaultRegion, $awsBucket, $appHost) {
         // $params = 'PostImages/1586510036_index-1.jpeg';
         $mimeTypeArr = ['.flv', '.mp4', '.m3u8', '.ts', '.3gp', '.mov', '.avi', '.wmv', '.webm', '.mp4#t=0.5'];
         $uniqueKey = md5($params);
@@ -32,7 +32,7 @@ class S3WrapperController {
             $minutes = $since_start->days * 24 * 60;
             $minutes += $since_start->h * 60;
             $minutes += $since_start->i;
-            $store_cache = env('STORE_CACHE', false);
+            $store_cache = $storeCache;
 
             if(Cache::has($uniqueKey)) {
                 $cacheResult = Cache::get($uniqueKey);
@@ -54,7 +54,7 @@ class S3WrapperController {
             } else {
                 $s3 = new S3Client([
                     'version' => 'latest',
-                    'region'  => env('AWS_DEFAULT_REGION')
+                    'region'  => $awsDefaultRegion
                 ]);
                 
                 try {
@@ -62,7 +62,7 @@ class S3WrapperController {
                     if(!in_array('.' . end($extension), $mimeTypeArr)) {
                         // Get the object.
                         $result = $s3->getObject([
-                            'Bucket' => env('AWS_BUCKET'),
+                            'Bucket' => $awsBucket,
                             'Key'    => $params
                         ]);
                         if($store_cache) {
@@ -71,7 +71,7 @@ class S3WrapperController {
                                 mkdir(base_path('public') . "/S3Docs", 0777, true);
                             }
                             file_put_contents('S3Docs/'.end($explodeParams), $result['Body']);
-                            $path = rtrim(env('APP_HOST',""), "/") . '/api/S3Docs/' . end($explodeParams);
+                            $path = rtrim($appHost, "/") . '/api/S3Docs/' . end($explodeParams);
                         
                             // Storage Folder Coding
                             /* Storage::disk('local')->put(end($explodeParams), $result['Body']);
@@ -86,7 +86,7 @@ class S3WrapperController {
                     } else {
                         // $params = "PostImages/1586846379_videoplayback.mp4";
                         $object = $s3->headObject([
-                            'Bucket' => env('AWS_BUCKET'),
+                            'Bucket' => $awsBucket,
                             'Key'    => $params,
                         ]);
                         $filePath = $object['@metadata']['effectiveUri'];

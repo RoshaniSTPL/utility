@@ -28,10 +28,14 @@ class FileHandleHelperController {
     /**
      * Delete File from file system and if Environment is Production then delete file from AWS S3 Bucket 
      * @param string $file Basic file name with folder name as prefix like (abc/bcd.ext)
+     * @param string $appEnv Environment of Application
+     * @param string $awsAccessKeyId AWS Access Key Id
+     * @param string $awsBucket AWS Bucket Name
+     * @param string $bucketFilePrefix AWS Bucket File as prefix
      * @param boolean $isInventory True if image is of inventory
      * @return boolean
      */
-    static public function FileDeleteObject($file, $isInventory = FALSE) {
+    static public function FileDeleteObject($file, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $isInventory = FALSE) {
         try {
             $file = trim($file);
             if ($isInventory) {
@@ -40,14 +44,14 @@ class FileHandleHelperController {
                 }
             } else {
                 if (isset($file) && !empty($file)) {
-                    if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                    if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                         deleteInventoryImg:
                         self::FileDeleteLocal($file);
                     } else {
-                        if (env('AWS_ACCESS_KEY_ID') != '') {
-                            if (self::FileExists($file)) {
+                        if ($awsAccessKeyId != '') {
+                            if (self::FileExists($file, $appEnv, $awsBucket)) {
                                 $s3 = AWS::createClient('s3');
-                                $s3->deleteObject(array('Bucket' => env('AWS_BUCKET'), 'Key' => str_replace(env('BUCKET_FILE_PREFIX'), "", $file)));
+                                $s3->deleteObject(array('Bucket' => $awsBucket, 'Key' => str_replace($bucketFilePrefix, "", $file)));
                             }
                         }
                     }
@@ -64,18 +68,22 @@ class FileHandleHelperController {
      * @param string $file Basic file name with folder name as prefix like (abc/bcd.ext)
      * @param string $tempFolder Source folder name where currently file is available
      * @param string $fileFolderPrefix Destination folder name where file should be moved
+     * @param string $appEnv Environment of Application
+     * @param string $awsAccessKeyId AWS Access Key Id
+     * @param string $awsBucket AWS Bucket Name
+     * @param string $bucketFilePrefix AWS Bucket File as prefix
      * @param boolean $deleteOldMedis True if delete file from source folder else false
      * @param boolean $isInventory True if image is of inventory
      * @return string
      */
-    static public function FileCopyObject($file, $tempFolder, $fileFolderPrefix, $deleteOldMedis = FALSE, $isInventory = FALSE) {
+    static public function FileCopyObject($file, $tempFolder, $fileFolderPrefix, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $deleteOldMedis = FALSE, $isInventory = FALSE) {
         try {
             $fileUrl = '';
             $path = app()->basePath('public/');
             if ($isInventory) {
                 goto storeInventoryImg;
             } else {
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     storeInventoryImg:
                     $old_path = $path . $file;
                     $new_path = $path . str_replace($tempFolder . "/", $fileFolderPrefix . "/", $file);
@@ -90,24 +98,24 @@ class FileHandleHelperController {
                     $fileUrl = str_replace($tempFolder . "/", $fileFolderPrefix . "/", $file);
                     if ($deleteOldMedis) {
                         if ($old_path != $new_path) {
-                            self::FileDeleteObject($file);
+                            self::FileDeleteObject($file, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $isInventory);
                         }
                     }
                 } else {
-                    if (env('AWS_ACCESS_KEY_ID') != '') {
+                    if ($awsAccessKeyId != '') {
                         $old_path = $file;
                         $new_path = str_replace($tempFolder . "/", $fileFolderPrefix . "/", $file);
                         $s3 = AWS::createClient('s3');
                         $s3->copyObject(array(
-                            'Bucket' => env('AWS_BUCKET'),
+                            'Bucket' => $awsBucket,
                             'Key' => $new_path,
-                            'CopySource' => env('AWS_BUCKET') . "/" . $old_path,
+                            'CopySource' => $awsBucket . "/" . $old_path,
                         ));
                         $fileUrl = $new_path;
                     }
                     if ($deleteOldMedis) {
                         if ($old_path != $new_path) {
-                            self::FileDeleteObject($file);
+                            self::FileDeleteObject($file, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $isInventory);
                         }
                     }
                 }
@@ -122,13 +130,16 @@ class FileHandleHelperController {
      * Create duplicate file from source file path to destination file path.
      * @param string $source Source File path like (abc/bcd.ext)
      * @param string $destination new file path to copy source file path like (xyz/xyz.ext)
+     * @param string $appEnv Environment of Application
+     * @param string $awsAccessKeyId AWS Access Key Id
+     * @param string $awsBucket AWS Bucket Name
      * @return string
      */
-    static public function FileduplicateObject($source, $destination) {
+    static public function FileduplicateObject($source, $destination, $appEnv, $awsAccessKeyId, $awsBucket) {
         try {
             $fileUrl = '';
             $path = app()->basePath('public/');
-            if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+            if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                 $old_path = $path . $source;
                 $new_path = $path . $destination;
 
@@ -141,21 +152,21 @@ class FileHandleHelperController {
                 }
                 $fileUrl = $destination;
             } else {
-                if (env('AWS_ACCESS_KEY_ID') != '') {
+                if ($awsAccessKeyId != '') {
                     $old_path = $source;
                     $new_path = $destination;
                     $s3 = AWS::createClient('s3');
                     $s3->copyObject(array(
-                        'Bucket' => env('AWS_BUCKET'),
+                        'Bucket' => $awsBucket,
                         'Key' => $new_path,
-                        'CopySource' => env('AWS_BUCKET') . "/" . $old_path,
+                        'CopySource' => $awsBucket . "/" . $old_path,
                     ));
                     $fileUrl = $new_path;
                 }
             }
             return $fileUrl;
         } catch (\Exception $e) {
-            ExceptionHelper::ExceptionNotification($e, 'FileHandleHelper', 'Backend error for FileCopyObject');
+            ExceptionHelper::ExceptionNotification($e, 'FileHandleHelper', 'Backend error for FileduplicateObject');
         }
     }
 
@@ -163,19 +174,23 @@ class FileHandleHelperController {
      * Upload to S3 at temp folder
      * @param string $file Basic file name with folder name as prefix like (abc/bcd.ext)
      * @param string $tempFolder Source folder name where currently file is available
+     * @param string $appEnv Environment of Application
+     * @param string $awsAccessKeyId AWS Access Key Id
+     * @param string $awsBucket AWS Bucket Name
+     * @param string $bucketFilePrefix AWS Bucket File as prefix
      * @param string $fileFolderPrefix Destination folder name where file should be moved
      * @param boolean $deleteOldMedis True if delete file from Source folder else false
      * @param boolean $isInventory True if image is of inventory
      * @return string
      */
-    static public function FileUploadToTempObject($file, $tempFolder, $fileFolderPrefix = NULL, $deleteOldMedis = FALSE, $isInventory = FALSE) {
+    static public function FileUploadToTempObject($file, $tempFolder, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $fileFolderPrefix = NULL, $deleteOldMedis = FALSE, $isInventory = FALSE) {
         try {
             $fileUrl = '';
             $path = app()->basePath('public/');
             if($isInventory) {
                 goto storeFileToTempFolder;
             } else {
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     storeFileToTempFolder:
                     $new_path = $path . $file;
                     if (isset($fileFolderPrefix)) {
@@ -186,7 +201,7 @@ class FileHandleHelperController {
                         }
                         if ($deleteOldMedis) {
                             if ($old_path != $new_path) {
-                                self::FileDeleteObject($file);
+                                self::FileDeleteObject($file, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $isInventory);
                             }
                         }
                     }
@@ -196,20 +211,20 @@ class FileHandleHelperController {
                     }
                     $fileUrl = (isset($fileFolderPrefix)) ? str_replace($tempFolder . "/", $fileFolderPrefix . "/", $file) : $file;
                 } else {
-                    if (env('AWS_ACCESS_KEY_ID') != '') {
+                    if ($awsAccessKeyId != '') {
                         $new_path = (isset($fileFolderPrefix)) ? str_replace($tempFolder . "/", $fileFolderPrefix . "/", $file) : $file;
                         $s3 = AWS::createClient('s3');
                         $s3->putObject(array(
-                            'Bucket' => env('AWS_BUCKET'),
+                            'Bucket' => $awsBucket,
                             'Key' => $new_path,
                             'SourceFile' => $path . $file,
                         ));
-                        /* $fileUrl = $s3->getObjectUrl(env('AWS_BUCKET'), $new_path); */
+                        /* $fileUrl = $s3->getObjectUrl($awsBucket, $new_path); */
                         $fileUrl = $new_path;
                     }
                     if ($deleteOldMedis) {
                         if ($new_path != $file) {
-                            self::FileDeleteObject($file);
+                            self::FileDeleteObject($file, $appEnv, $awsAccessKeyId, $awsBucket, $bucketFilePrefix, $isInventory);
                         }
                     }
                 }
@@ -223,12 +238,19 @@ class FileHandleHelperController {
     /**
      * Get full file path based on environment
      * @param string $file Basic file name with folder name as prefix like (abc/bcd.ext)
-     * @param boolian $isInventory True for Inventory images.
+     * @param string $appEnv Environment of Application
+     * @param string $bucketFilePrefix AWS Bucket File as prefix
+     * @param string $awsDefaultRegion Default region for AWS Bucket
+     * @param string $awsBucket AWS Bucket Name
+     * @param string $appHost Host for Application
+     * @param boolean $isInventory True for Inventory images.
+     * @param boolean $isVideo True for Video content
+     * @param boolean $storeCache True if stored cache
      * @return string
      */
-    static public function FileGetPath($file, $isInventory = false, $isVideo = false) {
+    static public function FileGetPath($file, $appEnv, $bucketFilePrefix, $awsDefaultRegion, $awsBucket, $appHost = '', $isInventory = false, $isVideo = false, $storeCache = FALSE) {
         try {
-            /* if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+            /* if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
             } else {
                 $protocol = "https://";
@@ -237,23 +259,23 @@ class FileHandleHelperController {
                 $domainName = $_SERVER['HTTP_HOST'];
             } else {
                 $protocol = "";
-                $domainName = rtrim(env('APP_HOST',""), "/");
+                $domainName = rtrim($appHost, "/");
             } */
             if (trim($file) != '') {
-                $filePrefix = rtrim(env('APP_HOST',""), "/") . '/api/';
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                $filePrefix = rtrim($appHost, "/") . '/api/';
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     $file = $filePrefix . trim($file);
                 } else {
                     /* $s3 = AWS::createClient('s3');
-                      $file = $s3->getObjectUrl(env('AWS_BUCKET'), $file); */
+                      $file = $s3->getObjectUrl($awsBucket, $file); */
                     if ($isInventory) {
                         $file = $filePrefix . trim($file);
                     } else {
                         if ($isVideo) {
-                            $file = env('BUCKET_FILE_PREFIX') . trim($file);
+                            $file = $bucketFilePrefix . trim($file);
                         } else {
-                            // $file = rtrim(env('APP_HOST',""), "/") . '/api/v1/s3/' . trim($file);
-                            $file = (new S3WrapperController)->getActualFile(trim($file));
+                            // $file = rtrim($appHost, "/") . '/api/v1/s3/' . trim($file);
+                            $file = (new S3WrapperController)->getActualFile(trim($file), $storeCache, $awsDefaultRegion, $awsBucket, $appHost);
                         }
                     }
                 }
@@ -267,20 +289,23 @@ class FileHandleHelperController {
     /**
      * Get file stored path from full url
      * @param string $file full file url with http_host
+     * @param string $appEnv Environment of Application
+     * @param string $appHost Host for Application
+     * @param string $bucketFilePrefix AWS Bucket File as prefix
      * @return string
      */
-    static public function FileGetDBEntry($file) {
+    static public function FileGetDBEntry($file, $appEnv, $appHost, $bucketFilePrefix) {
         try {
             if (trim($file) != '') {
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     /* $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
                     $domainName = $_SERVER['HTTP_HOST']; */
-                    $filePrefix = rtrim(env('APP_HOST',""), "/") . '/api/';
+                    $filePrefix = rtrim($appHost, "/") . '/api/';
                     $file = ltrim(trim($file), $filePrefix);
                 } else {
                     /* $s3 = AWS::createClient('s3');
-                      $file = $s3->getObjectUrl(env('AWS_BUCKET'), $file); */
-                    $file = ltrim(trim($file), env('BUCKET_FILE_PREFIX'));
+                      $file = $s3->getObjectUrl($awsBucket, $file); */
+                    $file = ltrim(trim($file), $bucketFilePrefix);
                 }
             }
             return trim($file);
@@ -304,14 +329,17 @@ class FileHandleHelperController {
      * Download file from S3 bucket for live environment
      * @param string $file Basic file path
      * @param string $downloadFolderPath Only folder path or name where we need to store file without file-name like ("abc/xyz") which is in public folder
+     * @param string $appEnv Environment of Application
+     * @param string $awsBucket AWS Bucket Name
+     * @param string $appHost Host for Application
      * @return string stored file path
      */
-    static public function DownloadFileToLocal($file, $downloadFolderPath) {
+    static public function DownloadFileToLocal($file, $downloadFolderPath, $appEnv, $awsBucket, $appHost) {
         try {
             $file_url = $file_path = "";
             $dirName = app()->basePath('public/');
             if (trim($file) != '') {
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     $old_path = $dirName . $file;
                     $new_path = $dirName . $downloadFolderPath . '/' . basename($file);
                     if ($old_path != $new_path) {
@@ -323,12 +351,12 @@ class FileHandleHelperController {
                     }
                 } else {
                     $store_file_path = $dirName . $downloadFolderPath . '/' . basename($file);
-                    if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                    if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                         copy($dirName . $file, $store_file_path);
                     } else {
                         $s3 = AWS::createClient('s3');
                         $files = $s3->getObject(array(
-                            'Bucket' => env('AWS_BUCKET'),
+                            'Bucket' => $awsBucket,
                             'Key' => $file,
                             'SaveAs' => $store_file_path)
                         );
@@ -338,12 +366,12 @@ class FileHandleHelperController {
                         exec('sudo chmod -R 777 ' . $store_file_path);
                     }
                 }
-                if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+                if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                     /* $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
                     $domainName = $_SERVER['HTTP_HOST']; */
-                    $filePrefix = rtrim(env('APP_HOST',""), "/") . '/api/';
+                    $filePrefix = rtrim($appHost, "/") . '/api/';
                 } else {
-                    $filePrefix = rtrim(env('APP_HOST',""), "/") . '/api/';
+                    $filePrefix = rtrim($appHost, "/") . '/api/';
                 }
                 $file_url = $filePrefix . trim($downloadFolderPath) . "/" . basename(trim($file));
                 $file_path = $dirName . trim($downloadFolderPath) . "/" . basename(trim($file));
@@ -360,16 +388,17 @@ class FileHandleHelperController {
      * @param string $zip_name zipfile name with extension like (""demo.zip)
      * @param string $zip_folder Only folder path or name where we need to store file without file-name like ("abc/xyz") which is in public folder
      * @param boolean $type 1 = URLs and 0 = local folder path
+     * @param string $appHost Host for Application
      * @return array zip path and url
      */
-    static public function CreateZipFile($files, $zip_name, $zip_folder, $type = 0) {
+    static public function CreateZipFile($files, $zip_name, $zip_folder, $type = 0, $appHost) {
         try {
             $file_url = $file_path = "";
             if (count($files)) {
                 $dirName = app()->basePath('public/');
                 /* $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
                 $domainName = $_SERVER['HTTP_HOST']; */
-                $filePrefix = rtrim(env('APP_HOST',""), "/") . '/api/';
+                $filePrefix = rtrim($appHost, "/") . '/api/';
 
                 $zip = new \ZipArchive;
                 if ($zip->open($dirName . $zip_folder . '/' . $zip_name, \ZipArchive::CREATE) === TRUE) {
@@ -403,22 +432,24 @@ class FileHandleHelperController {
     /**
      * Check If file is available in AWS S3 Bucket
      * @param string $file Basic file name with folder name as prefix like (abc/bcd.ext)
+     * @param string $appEnv Environment of Application
+     * @param string $awsBucket AWS Bucket Name
      * @return boolean
      */
-    static public function FileExists($file) {
+    static public function FileExists($file, $appEnv, $awsBucket) {
         try {
-            if (env('APP_ENV') === 'local' || env('APP_ENV') === 'staging' || env('APP_ENV') === 'demo') {
+            if ($appEnv === 'local' || $appEnv === 'staging' || $appEnv === 'demo') {
                 $path = app()->basePath('public/');
                 $filePath = $path . $file;
                 if (!file_exists($filePath)) {
                     return false;
                 } else {
-                    return self::FileGetPath($file);
+                    return self::FileGetPath($file, $appEnv, '', '', $awsBucket);
                 }
             } else {
                 if (trim($file) != '') {
                     $s3 = AWS::createClient('s3');
-                    $files = $s3->doesObjectExist(env('AWS_BUCKET'), $file);
+                    $files = $s3->doesObjectExist($awsBucket, $file);
                     $files = (isset($files) && !empty($files)) ? $files : false;
                     return $files;
                 } else {
@@ -480,9 +511,12 @@ class FileHandleHelperController {
      * @param string $filePath Main file path
      * @param string $thumbFilePath Thumb file path
      * @param string $thumbWitdh Thumb file width
+     * @param boolean $focus true if focus
+     * @param string $quality Quality of thumbnail image
+     * @param boolean $imageConvertGd true if converted image from url based on image format
      * @return Boolean true for success thumb create False for thumb creation fail.
      */
-    static public function createThumbnail($filePath, $thumbFilePath, $thumbWitdh = 600, $focus = FALSE, $quality = 0.9) {
+    static public function createThumbnail($filePath, $thumbFilePath, $thumbWitdh = 600, $focus = FALSE, $quality = 0.9, $imageConvertGd = FALSE) {
         try {
             /* getting extension from file path */
             $ext = explode('.',$filePath);
@@ -498,7 +532,7 @@ class FileHandleHelperController {
                     $newHeight = floor($oldHeight * $thumbWitdh);
                 }
 
-                if (env('IMAGE_CONVERT_GD','false')) {
+                if ($imageConvertGd) {
                     /* creating image from url based on image format */
                     switch(strtolower($ext)){
                         case "png":
